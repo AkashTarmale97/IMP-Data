@@ -1,0 +1,73 @@
+1. Create STFP group
+groupadd sftp_users
+cat /etc/group | grep sftp_users
+Ex output: sftp_users:x:1000:
+
+2. Create FTP User, set password & home directory
+useradd ftpuser -g <gid of abv group> -d /backup
+passwd ftpuser
+cat /etc/passwd | grep ftp
+ 
+
+3. Create directory structure
+mkdir -p /apicuat/<FTP user name>/backup
+
+
+4. Change permissions & ownership for the above created directories as set below
+
+[root@siuatsftp apiconnectuat]# ls -ld /apicuat
+drwxr-xr-x 3 root root 21 Feb  2  2023 /apicuat
+[root@siuatsftp apiconnectuat]#
+[root@siuatsftp apiconnectuat]# ls -ld /apicuat/ftpuser
+drwxr-xr-x 3 root sftp_users 27 Feb  2  2023 /apicuat/ftpuser
+[root@siuatsftp apiconnectuat]#
+[root@siuatsftp apiconnectuat]# ls -ld /apicuat/ftpuser/backup
+drwxr-xr-x 4 ftpuser sftp_users 35 Feb  2  2023 /apicuat/ftpuser/backup
+[root@siuatsftp apiconnectuat]#
+
+chmod -R 755 /apicuat/<FTP user name>/backup
+chown root:root /apicuat
+chown root:sftp_users /apic/ftpuser
+chown ftpuser:sftp_users /apic/ftpuser/apiconnectuat
+chown ftpuser:sftp_users /apicuat/ftpuser/backup/portal
+chown ftpuser:sftp_users /apicuat/ftpuser/backup/manager
+
+ls -ld /apicuat
+ls -ld /apicuat/ftpuser
+ls -ld /apicuat/ftpuser/backup
+ls -ld /apicuat/ftpuser/backup/portal
+ls -ld /apicuat/ftpuser/backup/manager
+
+NOTE: Any directories created further under the "/apicuat/ftpuser/backup" directory should have 755 permission & "ftpuser:sftp_users" ownership.
+
+
+5. Restrict ftpuser login to specific port using mathc block setting in sshd_config file
+vi /etc/ssh/sshd_config
+
+Port 6022
+############################# MATCH BLOCK STARTS ###########################
+
+Match LocalPort 6022 Group sftp_users
+                ChrootDirectory /apicuat/%u
+                ForceCommand internal-sftp
+                AllowTCPForwarding no
+                X11Forwarding no
+
+Match Group sftp_users LocalPort 22
+
+Match all
+############################# MATCH BLOCK ENDS #############################
+
+6. Whitelist the port in security
+semanage port -a -t ssh_port_t -p tcp 6022
+
+7. Whitelist Port in Firewall    
+firewall-cmd --add-port=6022/tcp --permanent
+
+firewall-cmd --reload
+
+7. Restart sshd service
+service sshd restart
+
+8. Test from different server
+sftp -P 6022 ftpuser@10.177.56.238
