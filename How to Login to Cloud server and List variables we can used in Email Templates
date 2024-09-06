@@ -1,0 +1,50 @@
+
+
+#Steps to Login Cloud admin server and list out the varibles we can use in email templates:
+
+Login to the Linux Jump Server.
+ssh root@10.177.56.238
+
+Find the folder where the apic toolkit is stored.
+find / -name apic
+
+Change the directory to that folder where toolkit is stored.
+cd /usr/bin
+
+List out the identity_providers using below command.
+apic identity-providers:list --scope admin --server mgmt_endpoint_url --fields title,realm
+
+Output:
+total_results: 1
+results:
+  - title: 'Cloud Manager User Registry'
+    realm: 'admin/default-idp-1'
+
+Example:
+apic identity-providers:list --scope admin --server https://cloud-admin-ui.eisuat.sbi.co.in --fields title,realm
+
+Note:same you can list of api manager.
+
+Login to the cloud server using below command.
+apic login --server management_server --realm admin/identity_provider --username cloud_username --password cloud_password
+
+Example:
+apic login --server cloud-admin-ui.eisuat.sbi.co.in --realm admin/default-idp-1 --username admin --password Password@1
+
+Here cloud-admin-ui.eisuat.sbi.co.in=Cloud servers fqdn
+
+List out the variables we can use in email notification templates:
+apic notification-templates:get template_name --server mgmt_endpoint_url --scope cloud --subcollection template_scope --fields variables --output -
+
+Example:
+apic notification-templates:get account-denied --server https://cloud-admin-ui.eisuat.sbi.co.in --scope cloud --subcollection consumer --fields variables --output -
+
+Output:
+variables:
+  - 'firstName'
+  - 'lastName'
+  - 'username'
+  - 'email'
+  - 'catalogTitle'
+  - 'comments'
+  - 'portalType'
